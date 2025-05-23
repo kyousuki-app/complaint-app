@@ -1,25 +1,30 @@
 name: Daily Archive
 
 on:
-  workflow_dispatch:        # 手動実行用
+  workflow_dispatch:        # 手動実行用トリガー
   schedule:
-    - cron: '0 15 * * *'    # UTC 15:00 = JST 0:00
+    - cron: '0 15 * * *'    # 毎日 15:00 UTC = 0:00 JST
 
 jobs:
   archive:
     runs-on: ubuntu-latest
 
+    # GCP_SA_KEY は GitHub Secrets で登録済みのはず
     env:
       GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      - run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
       - name: Run daily archive script
+        # ← ここを必ず npx tsx で呼び出す
         run: npx tsx scripts/dailyArchive.ts
