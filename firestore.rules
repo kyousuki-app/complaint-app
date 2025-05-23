@@ -23,7 +23,7 @@ service cloud.firestore {
 
     match /top10_logs/{logId} {
       // 最新のTOP10を誰でも読めるように
-      allow read: true;
+      allow read: if true;
       // 書き込みは管理用バッチ（Admin SDK）が行うため不要
     }
   }
