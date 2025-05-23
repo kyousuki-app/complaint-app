@@ -1,0 +1,25 @@
+name: Daily Archive
+
+on:
+  workflow_dispatch:        # 手動実行用
+  schedule:
+    - cron: '0 15 * * *'    # UTC 15:00 = JST 0:00
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+
+    env:
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - run: npm ci
+
+      - run: npm run archive
+        name: Run daily archive script
