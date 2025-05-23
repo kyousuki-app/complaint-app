@@ -1,25 +1,32 @@
 // scripts/dailyArchive.ts
 
-import * as admin from 'firebase-admin';
+// 1) firebase-admin v11+ の ESM モジュール形式でインポート
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 
-// 1) サービスアカウントキーを環境変数から読み込み
+// 2) サービスアカウントキーを環境変数から読み込み
 const key = JSON.parse(process.env.GCP_SA_KEY!);
-admin.initializeApp({
-  credential: admin.credential.cert(key),
+
+// 3) Admin SDK 初期化
+initializeApp({
+  credential: cert(key),
 });
-const db = admin.firestore();
+
+// 4) Firestore インスタンス取得
+const db = getFirestore();
 
 // Firestore のドキュメント型を定義
 interface PostData {
-  board: 'guchi' | 'kenja';
-  like:  number;
-  hug:   number;
-  body:  string;
+  board:    'guchi' | 'kenja';
+  like:     number;
+  hug:      number;
+  body:     string;
   isPublic: boolean;
 }
 
 async function main() {
-  const now = admin.firestore.Timestamp.now();
+  // 現在時刻
+  const now = Timestamp.now();
 
   // a) isPublic=true を取得
   const snap = await db.collection('posts')
@@ -31,9 +38,8 @@ async function main() {
   // b) 非公開化
   snap.docs.forEach(d => batch.update(d.ref, { isPublic: false }));
 
-  // c) Board ごとに Top10
+  // c) Board ごとに Top10 を計算して logs に書き出し
   for (const board of ['guchi','kenja'] as const) {
-    // データを PostData 型として取得
     const posts = snap.docs
       .map(d => {
         const data = d.data() as PostData;
@@ -49,11 +55,11 @@ async function main() {
         hug:  p.hug,
       }));
 
-    // ログ用コレクションにセット
     const logRef = db.collection('top10_logs').doc();
     batch.set(logRef, { board, date: now, items: posts });
   }
 
+  // b) バッチコミット
   await batch.commit();
   console.log('✅ Daily archive done.');
 }
